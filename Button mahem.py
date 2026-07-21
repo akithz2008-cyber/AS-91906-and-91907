@@ -20,7 +20,7 @@ class main:
         self.start_new_game()
 
     def setup_ui(self):
-        """TASK 1: Create base OOP UI layout structure"""
+        """Create base OOP UI layout structure"""
         self.status_label = tk.Label(
             self.root, 
             text="Pick a button! Avoid the bomb.", 
@@ -45,15 +45,15 @@ class main:
 
     """Reset board state & re-randomize losing button"""
     def start_new_game(self):
-        """Reset board state & re-randomize losing button"""
+
         self.safe_clicks_count = 0
         self.status_label.config(text="Pick a button! Avoid the bomb.")
         self.restart_button.config(state="disabled")
         
-        # Randomly assign ONE button index as the loser
+        # Make losing button
         self.losing_index = random.randint(0, self.total_buttons - 1)
         
-        # Render/reset 6 buttons
+        # reset 6 buttons
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
             
@@ -68,7 +68,7 @@ class main:
                 text=f"Button {i + 1}", 
                 width=10, 
                 height=3,
-                # TASK 3: Click detection passing button index
+                # Click detection passing button index
                 command=lambda idx=i: self.handle_click(idx)
             )
             btn.grid(row=row, column=col, padx=5, pady=5)
@@ -80,20 +80,30 @@ class main:
         
         #Check for losing button click
         if clicked_index == self.losing_index:
+            clicked_btn.config(
+                bg="#dc3545",
+                fg="white",
+                disabledforeground="white", 
+                state="disabled" 
+            )
             self.status_label.config(text="GAME OVER! You picked the bomb!")
             self.end_game()
         else:
-            # Safe pick logic
-            clicked_btn.config(state="disabled")
+            # Safe pick
+            clicked_btn.config(
+                bg="#28a745",
+                fg="white", 
+                disabledforeground="white",
+                state="disabled")
             self.safe_clicks_count += 1
             
             # Check for win
             if self.safe_clicks_count == self.total_buttons - 1:
                 self.status_label.config(text="YOU WIN! All safe buttons cleared!")
                 self.end_game()
-
+    """lock the board and enable restart when round finishes"""
     def end_game(self):
-        """Helper to lock the board and enable restart when round finishes"""
+
         for btn in self.active_buttons.values():
             btn.config(state="disabled")
         self.restart_button.config(state="normal")
