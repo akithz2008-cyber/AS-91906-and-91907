@@ -80,11 +80,22 @@ class main:
         
         #Check for losing button click
         if clicked_index == self.losing_index:
+            clicked_btn.config(
+                bg="#dc3545",
+                fg="white",
+                disabledforeground="white", 
+                state="disabled" 
+            )
             self.status_label.config(text="GAME OVER! You picked the bomb!")
             self.end_game()
         else:
             # Safe pick logic
-            clicked_btn.config(state="disabled")
+            clicked_btn.config(
+            bg="#28a745",
+            fg="white", 
+            disabledforeground="white",
+            state="disabled"
+            )
             self.safe_clicks_count += 1
             
             # Check for win
@@ -93,7 +104,7 @@ class main:
                 self.end_game()
 
     def end_game(self):
-        """Helper to lock the board and enable restart when round finishes"""
+
         for btn in self.active_buttons.values():
             btn.config(state="disabled")
         self.restart_button.config(state="normal")
