@@ -26,8 +26,9 @@ class main:
         self.current_streak = 0
         self.best_streak = 0
         
-        # Timer
-        self.seconds_elapsed = 0
+        # Timer and timeout
+        self.timeout_seconds = 3
+        self.seconds_remaining = 3
         self.timer_job = None
         self.timer_active = False
         
@@ -56,15 +57,16 @@ class main:
         )
         self.level_label.pack()
 
-        # Timer Display
+        # Timeout
         self.timer_label = tk.Label(
             self.header_frame, 
-            text="Time: 0s", 
-            font=("Arial", 11, "bold"),
-            fg="#555555"
+            text="Time Left: 3s", 
+            font=("Arial", 17, "bold"),
+            fg="#dc3545"
         )
         self.timer_label.pack(pady=2)
         
+        #streak
         self.streak_label = tk.Label(
             self.header_frame, 
             text="Streak: 0  |  Best: 0", 
@@ -178,10 +180,16 @@ class main:
             self.update_timer()
 
     def update_timer(self):
+        """count down from 3=> 0 seconds then pick randwom button"""
         if self.timer_active:
-            self.timer_label.config(text=f"Time: {self.seconds_elapsed}s")
-            self.seconds_elapsed += 1
-            self.timer_job = self.root.after(1000, self.update_timer)
+            self.timer_label.config(text=f"Time Left: {self.seconds_remaining}s")
+            
+            if self.seconds_remaining <= 0:
+                #time out
+                self.auto_pick_random_button()
+            else:
+                self.seconds_remaining -= 1
+                self.timer_job = self.root.after(1000, self.update_timer)
 
     def stop_timer(self):
         self.timer_active = False
@@ -190,9 +198,22 @@ class main:
             self.timer_job = None
 
     def reset_timer(self):
+        #reset timer
         self.stop_timer()
-        self.seconds_elapsed = 0
-        self.timer_label.config(text="Time: 0s")
+        self.seconds_remaining = self.timeout_seconds
+        self.timer_label.config(text=f"Time Left: {self.timeout_seconds}s")
+    
+    def auto_pick_random_button(self):
+        """Selects a random available (active) button on timeout"""
+        # Find all buttons that haven't been clicked yet
+        available_indices = [
+            idx for idx, btn in self.active_buttons.items() 
+            if btn["state"] != "disabled"
+        ]
+        
+        if available_indices:
+            random_pick = random.choice(available_indices)
+            self.handle_click(random_pick)
 
     # -------------------------------------------------- #
     #                   Progression                      #
@@ -244,7 +265,11 @@ class main:
             
             # Check if all buttons pressed in the board
             if self.safe_clicks_count == total_safe_buttons:
-                self.handle_board_cleared()           
+                self.handle_board_cleared() 
+            else:
+                # Reset countdown timer to 3s for the next move
+                self.reset_timer()
+                self.start_timer()          
 
     def handle_board_cleared(self):
         """Triggers when a level is cleared"""
