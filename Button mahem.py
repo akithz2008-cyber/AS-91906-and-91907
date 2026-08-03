@@ -1,13 +1,16 @@
-""" This is my first version of the button game Ive created in terms of sprints this would be sprint 1 and 2 combined this contains the basic essansials for the game like scoring, streaks and colours and in my future vesions I would add futher progression"""
+""" This my second version of the program Ive added a progression system in the next few days I would be plamming to add a timer, timeout and in the futher weeks possibly a custom game mode with file handling"""
 import tkinter as tk
 import random
-
+# -------------------------------------------------- #
+#                       MAIN                         #
+# -------------------------------------------------- #
 class main:
     def __init__(self, root):
         self.root = root
         self.root.title("button mayhem")
-        self.root.geometry("400x500")
+        self.root.geometry("400x520")
 
+        # ---------------- Variables ---------------- #
         #Board
         self.total_buttons = 6
         self.max_level = 5
@@ -23,12 +26,21 @@ class main:
         self.current_streak = 0
         self.best_streak = 0
         
+        # Timer
+        self.seconds_elapsed = 0
+        self.timer_job = None
+        self.timer_active = False
+        
+
         # Make UI
         self.setup_ui()
         
         #Make first game
         self.start_new_game()
 
+    # -------------------------------------------------- #
+    #                   UI                               #
+    # -------------------------------------------------- #
     def setup_ui(self):
         """Create base OOP UI layout structure"""
         #header for streak
@@ -43,6 +55,15 @@ class main:
             fg="#007bff"
         )
         self.level_label.pack()
+
+        # Timer Display
+        self.timer_label = tk.Label(
+            self.header_frame, 
+            text="Time: 0s", 
+            font=("Arial", 11, "bold"),
+            fg="#555555"
+        )
+        self.timer_label.pack(pady=2)
         
         self.streak_label = tk.Label(
             self.header_frame, 
@@ -68,7 +89,7 @@ class main:
         )
         self.status_label.pack(pady=15)
         
-        #make 6 buttons
+        #make grid for btn
         self.grid_frame = tk.Frame(self.root)
         self.grid_frame.pack(expand=True)
         
@@ -96,6 +117,9 @@ class main:
         )
         self.action_button.pack(side="right", padx=20)
 
+    # -------------------------------------------------- #
+    #                   Start Game                       #
+    # -------------------------------------------------- #
     """starts the game with the new progression"""
     def start_new_game(self):
 
@@ -103,14 +127,20 @@ class main:
         num_bombs = self.current_level
         total_safe = self.total_buttons - num_bombs
 
-        #Update the display
+        # reset timer
+        if self.current_level == 1:
+            self.reset_timer()
+
+        self.start_timer()
+
+        #Update game
         self.level_label.config(text=f"LEVEL {self.current_level} / {self.max_level}")
         self.status_label.config(
             text=f"Find all {total_safe} safe buttons! ({num_bombs} bombs hidden)", 
             fg="black"
         )
-        # Reset action button text and state for the active round
-        self.action_button.config(text="Next Level", state="disabled")
+        #Reset next level text and state for the active round
+        self.action_button.config(text="Nxt lvl", state="disabled")
         
         # Pick a 'n' amonut of losing buttons
         self.losing_index = random.sample(range(self.total_buttons), k=num_bombs)
@@ -135,7 +165,38 @@ class main:
             )
             btn.grid(row=row, column=col, padx=5, pady=5)
             self.active_buttons[i] = btn
+        #For debuggin makes the losing button redish
+        """for idx in self.losing_index:
+            self.active_buttons[idx].config(bg="#ffcccc")"""
 
+    # -------------------------------------------------- #
+    #                   Timer                            #
+    # -------------------------------------------------- #
+    def start_timer(self):
+        if not self.timer_active:
+            self.timer_active = True
+            self.update_timer()
+
+    def update_timer(self):
+        if self.timer_active:
+            self.timer_label.config(text=f"Time: {self.seconds_elapsed}s")
+            self.seconds_elapsed += 1
+            self.timer_job = self.root.after(1000, self.update_timer)
+
+    def stop_timer(self):
+        self.timer_active = False
+        if self.timer_job:
+            self.root.after_cancel(self.timer_job)
+            self.timer_job = None
+
+    def reset_timer(self):
+        self.stop_timer()
+        self.seconds_elapsed = 0
+        self.timer_label.config(text="Time: 0s")
+
+    # -------------------------------------------------- #
+    #                   Progression                      #
+    # -------------------------------------------------- #
     """Click detection and win/lose """
     def handle_click(self, clicked_index):
 
@@ -143,6 +204,7 @@ class main:
         
         #Check for losing button click
         if clicked_index in self.losing_index:
+            self.stop_timer()
             clicked_btn.config(
                 bg="#dc3545",
                 fg="white",
@@ -187,6 +249,7 @@ class main:
     def handle_board_cleared(self):
         """Triggers when a level is cleared"""
         self.disable_all_buttons()
+        self.stop_timer()
         
         # Check for win
         if self.current_level == self.max_level:
@@ -208,19 +271,23 @@ class main:
                 fg="#28a745"
             )
             self.current_level += 1
-            self.action_button.config(text=f"nxt Level", state="normal")
+            self.action_button.config(text=f"Nxt lvl", state="normal")
 
     def handle_action_button(self):
-        """Action button callback for either retrying or advancing to the next board"""
+        """Action button callback for either retrying or to the next board"""
         self.start_new_game()
 
     def reset_to_start(self):
-        """Reset game state back to Level 1"""
+        """Reset gameback to Level 1"""
         self.current_level = 1
         self.current_score = 0
         self.update_scoreboard()
+        self.reset_timer()
         self.start_new_game()
 
+    # -------------------------------------------------- #
+    #                   Other Stuff                      #
+    # -------------------------------------------------- #
     def reveal_all_bombs(self):
         """Reveals all hidden bombs when a player loses"""
         for idx in self.losing_index:
@@ -242,6 +309,9 @@ class main:
         self.streak_label.config(text=f"Streak: {self.current_streak} | Best: {self.best_streak}")
 
 
+# -------------------------------------------------- #
+#                    MAIN ENTRY                      #
+# -------------------------------------------------- #
 if __name__ == "__main__":
     root = tk.Tk()
     app = main(root)
