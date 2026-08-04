@@ -1,175 +1,261 @@
-""" This my second version of the program Ive added a progression system in the next few days I would be plamming to add a timer, timeout and in the futher weeks possibly a custom game mode with file handling"""
-import tkinter as tk
+""" This version adds file handling I decided to use messafebox from tikinter as it is way more simpler and had less issues when using it for data entry"""
+
 import random
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+
 # -------------------------------------------------- #
 #                       MAIN                         #
 # -------------------------------------------------- #
 class main:
+
     def __init__(self, root):
         self.root = root
         self.root.title("button mayhem")
-        self.root.geometry("400x520")
+        self.root.geometry("400x560")
 
         # ---------------- Variables ---------------- #
-        #Board
+        # Board
         self.total_buttons = 6
         self.max_level = 5
-        
+
+        # File handling & User
+        self.username = ""
+        self.score_file = "score.txt"
+
         # Progression
         self.current_level = 1
         self.losing_index = []
         self.safe_clicks_count = 0
         self.active_buttons = {}
-        
-        #Score
+
+        # Score & Streaks
         self.current_score = 0
         self.current_streak = 0
         self.best_streak = 0
-        
+
         # Timer and timeout
         self.timeout_seconds = 3
         self.seconds_remaining = 3
         self.timer_job = None
         self.timer_active = False
-        
+
+        # Get user details & saved high score
+        self.get_valid_username()
+        self.load_high_score()
+
+        # Save data on window close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # Make UI
         self.setup_ui()
-        
-        #Make first game
+
+        # Make first game
         self.start_new_game()
+
+    # -------------------------------------------------- #
+    #               File Handling                        #
+    # -------------------------------------------------- #
+    def get_valid_username(self):
+        #asks for username 
+        while True:
+            name = simpledialog.askstring(
+                "Arigato!!! tuff civilian", "We want to know ur name inorder to sell it to the goverment for dabloons:"
+            )
+
+            if name is None:
+                name = ""
+
+            cleaned_name = name.strip()
+
+            if cleaned_name:
+                self.username = cleaned_name
+                break
+            else:
+                messagebox.showwarning(
+                    "Invalid Input",
+                    "Username cannot be blank! Please try again.",
+                )
+
+    def load_high_score(self):
+        """Loads saved best streak from score.txt for the current user."""
+        try:
+            with open(self.score_file, "r") as file:
+                for line in file:
+                    line = line.strip()
+                    if ":" in line:
+                        user, score = line.split(":", 1)
+                        if user.strip() == self.username:
+                            self.best_streak = int(score.strip())
+        except (FileNotFoundError, ValueError):
+            self.best_streak = 0
+
+    def save_high_score(self):
+        """Saves current player's best streak into score.txt without losing other users."""
+        scores = {}
+
+        # Read existing records
+        try:
+            with open(self.score_file, "r") as file:
+                for line in file:
+                    line = line.strip()
+                    if ":" in line:
+                        user, score = line.split(":", 1)
+                        scores[user.strip()] = int(score.strip())
+        except FileNotFoundError:
+            pass
+
+        # Update high score for current user
+        prev_best = scores.get(self.username, 0)
+        scores[self.username] = max(prev_best, self.best_streak)
+
+        # Write all scores back to text file
+        try:
+            with open(self.score_file, "w") as file:
+                for user, score in scores.items():
+                    file.write(f"{user}:{score}\n")
+        except OSError as e:
+            print(f"Error saving score: {e}")
+
+    def on_close(self):
+        """Saves data and destroys window when user clicks X."""
+        self.save_high_score()
+        self.root.destroy()
 
     # -------------------------------------------------- #
     #                   UI                               #
     # -------------------------------------------------- #
     def setup_ui(self):
         """Create base OOP UI layout structure"""
-        #header for streak
+        # header frame
         self.header_frame = tk.Frame(self.root, pady=10)
         self.header_frame.pack(fill="x")
 
-        #Shows current level
+        # Shows player name
+        self.user_label = tk.Label(
+            self.header_frame,
+            text=f"Player: {self.username}",
+            font=("Arial", 11, "italic"),
+            fg="#333333",
+        )
+        self.user_label.pack()
+
+        # Shows current level
         self.level_label = tk.Label(
-            self.header_frame, 
-            text="LEVEL 1 / 5", 
+            self.header_frame,
+            text="LEVEL 1 / 5",
             font=("Arial", 14, "bold"),
-            fg="#007bff"
+            fg="#007bff",
         )
         self.level_label.pack()
 
         # Timeout
         self.timer_label = tk.Label(
-            self.header_frame, 
-            text="Time Left: 3s", 
+            self.header_frame,
+            text="Time Left: 3s",
             font=("Arial", 17, "bold"),
-            fg="#dc3545"
+            fg="#dc3545",
         )
         self.timer_label.pack(pady=2)
-        
-        #streak
+
+        # streak tracker
         self.streak_label = tk.Label(
-            self.header_frame, 
-            text="Streak: 0  |  Best: 0", 
+            self.header_frame,
+            text=f"Streak: 0  |  Best: {self.best_streak}",
             font=("Arial", 12, "bold"),
-            fg="#555555"
+            fg="#555555",
         )
         self.streak_label.pack()
 
-        #scoreboard
+        # scoreboard
         self.score_label = tk.Label(
-            self.root, 
-            text="Score: 0", 
-            font=("Arial", 18, "bold"),
-            fg="#111111"
+            self.root, text="Score: 0", font=("Arial", 18, "bold"), fg="#111111"
         )
         self.score_label.pack(pady=5)
 
         self.status_label = tk.Label(
-            self.root, 
-            text="Pick a button! Avoid the bomb.", 
-            font=("Arial", 14)
+            self.root, text="Pick a button! Avoid the bomb.", font=("Arial", 14)
         )
         self.status_label.pack(pady=15)
-        
-        #make grid for btn
+
+        # make grid for btn
         self.grid_frame = tk.Frame(self.root)
         self.grid_frame.pack(expand=True)
-        
+
         self.control_frame = tk.Frame(self.root, pady=15)
         self.control_frame.pack(fill="x")
 
-        #restart button
+        # restart button
         self.restart_button = tk.Button(
-            self.control_frame, 
-            text="Restart (Level 1)", 
+            self.control_frame,
+            text="Restart (Level 1)",
             font=("Arial", 11, "bold"),
             command=self.reset_to_start,
-            bg="#f8f9fa"
+            bg="#f8f9fa",
         )
         self.restart_button.pack(side="left", padx=20)
 
         self.action_button = tk.Button(
-            self.control_frame, 
-            text="Next Level", 
+            self.control_frame,
+            text="Next Level",
             font=("Arial", 11, "bold"),
             command=self.handle_action_button,
             state="disabled",
             bg="#007bff",
-            fg="white"
+            fg="white",
         )
         self.action_button.pack(side="right", padx=20)
 
     # -------------------------------------------------- #
     #                   Start Game                       #
     # -------------------------------------------------- #
-    """starts the game with the new progression"""
     def start_new_game(self):
-
         self.safe_clicks_count = 0
         num_bombs = self.current_level
         total_safe = self.total_buttons - num_bombs
 
-        # reset timer
-        if self.current_level == 1:
-            self.reset_timer()
-
+        # reset timer for each new board
+        self.reset_timer()
         self.start_timer()
 
-        #Update game
-        self.level_label.config(text=f"LEVEL {self.current_level} / {self.max_level}")
-        self.status_label.config(
-            text=f"Find all {total_safe} safe buttons! ({num_bombs} bombs hidden)", 
-            fg="black"
+        # Update labels
+        self.level_label.config(
+            text=f"LEVEL {self.current_level} / {self.max_level}"
         )
-        #Reset next level text and state for the active round
+        self.status_label.config(
+            text=f"Find all {total_safe} safe buttons! ({num_bombs} bombs hidden)",
+            fg="black",
+        )
         self.action_button.config(text="Nxt lvl", state="disabled")
-        
-        # Pick a 'n' amonut of losing buttons
-        self.losing_index = random.sample(range(self.total_buttons), k=num_bombs)
-        
-        # reset 6 buttons
+
+        # Pick losing buttons
+        self.losing_index = random.sample(
+            range(self.total_buttons), k=num_bombs
+        )
+
+        # Reset buttons grid
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
-            
+
         self.active_buttons.clear()
-        
+
         for i in range(self.total_buttons):
             row = i // 3
             col = i % 3
-            
+
             btn = tk.Button(
-                self.grid_frame, 
-                text=f"Button {i + 1}", 
-                width=10, 
+                self.grid_frame,
+                text=f"Button {i + 1}",
+                width=10,
                 height=3,
-                # Click detection passing button index
-                command=lambda idx=i: self.handle_click(idx)
+                command=lambda idx=i: self.handle_click(idx),
             )
             btn.grid(row=row, column=col, padx=5, pady=5)
             self.active_buttons[i] = btn
-        #For debuggin makes the losing button redish
-        """for idx in self.losing_index:
-            self.active_buttons[idx].config(bg="#ffcccc")"""
+                #For debuggin makes the losing button redish
+        for idx in self.losing_index:
+            self.active_buttons[idx].config(bg="#ffcccc")
 
     # -------------------------------------------------- #
     #                   Timer                            #
@@ -180,12 +266,13 @@ class main:
             self.update_timer()
 
     def update_timer(self):
-        """count down from 3=> 0 seconds then pick randwom button"""
+        """Count down from 3 => 0 seconds then pick a random button"""
         if self.timer_active:
-            self.timer_label.config(text=f"Time Left: {self.seconds_remaining}s")
-            
+            self.timer_label.config(
+                text=f"Time Left: {self.seconds_remaining}s"
+            )
+
             if self.seconds_remaining <= 0:
-                #time out
                 self.auto_pick_random_button()
             else:
                 self.seconds_remaining -= 1
@@ -198,19 +285,18 @@ class main:
             self.timer_job = None
 
     def reset_timer(self):
-        #reset timer
         self.stop_timer()
         self.seconds_remaining = self.timeout_seconds
         self.timer_label.config(text=f"Time Left: {self.timeout_seconds}s")
-    
+
     def auto_pick_random_button(self):
         """Selects a random available (active) button on timeout"""
-        # Find all buttons that haven't been clicked yet
         available_indices = [
-            idx for idx, btn in self.active_buttons.items() 
+            idx
+            for idx, btn in self.active_buttons.items()
             if btn["state"] != "disabled"
         ]
-        
+
         if available_indices:
             random_pick = random.choice(available_indices)
             self.handle_click(random_pick)
@@ -218,12 +304,10 @@ class main:
     # -------------------------------------------------- #
     #                   Progression                      #
     # -------------------------------------------------- #
-    """Click detection and win/lose """
     def handle_click(self, clicked_index):
-
         clicked_btn = self.active_buttons[clicked_index]
-        
-        #Check for losing button click
+
+        # Check for losing button click
         if clicked_index in self.losing_index:
             self.stop_timer()
             clicked_btn.config(
@@ -234,80 +318,83 @@ class main:
                 text="💥",
                 state="disabled",
             )
-            #rest scores
-            self.status_label.config(text="GAME OVER! You picked the bomb!", fg="#dc3545")
+            
+            # Reset current streak and score on loss
+            self.status_label.config(
+                text="GAME OVER! You picked the bomb!", fg="#dc3545"
+            )
             self.current_score = 0
             self.current_streak = 0
             self.current_level = 1
             self.update_scoreboard()
 
-            #show bomb
+            # Reveal all bombs & lock board
             self.reveal_all_bombs()
             self.disable_all_buttons()
 
             self.action_button.config(text="Try Again", state="normal")
-           
+
         else:
             # Safe pick
             clicked_btn.config(
                 bg="#28a745",
-                fg="white", 
+                fg="white",
                 disabledforeground="white",
                 text="✓",
-                state="disabled"
+                state="disabled",
             )
             self.safe_clicks_count += 1
-            
+
             total_safe_buttons = self.total_buttons - self.current_level
-            points_earned = int(100 / total_safe_buttons)  
+            points_earned = int(100 / total_safe_buttons)
             self.current_score += points_earned
             self.update_scoreboard()
-            
-            # Check if all buttons pressed in the board
+
+            # Check if all safe buttons pressed on current board
             if self.safe_clicks_count == total_safe_buttons:
-                self.handle_board_cleared() 
+                self.handle_board_cleared()
             else:
-                # Reset countdown timer to 3s for the next move
+                # Reset countdown timer for the next pick
                 self.reset_timer()
-                self.start_timer()          
+                self.start_timer()
 
     def handle_board_cleared(self):
-        """Triggers when a level is cleared"""
+        """Triggers when a board level is cleared"""
         self.disable_all_buttons()
         self.stop_timer()
-        
-        # Check for win
+
+        # Increase current streak for clearing a board
+        self.current_streak += 1
+        if self.current_streak > self.best_streak:
+            self.best_streak = self.current_streak
+            self.save_high_score()  # Save instantly whenever high score increases
+
+        self.update_scoreboard()
+
+        # Check for max level win
         if self.current_level == self.max_level:
-            self.current_streak += 1
-            if self.current_streak > self.best_streak:
-                self.best_streak = self.current_streak
-            self.update_scoreboard()
-            
             self.status_label.config(
-                text="You lowkey so tuff", 
-                fg="#28a745"
+                text="You cleared all 5 levels! Legend!", fg="#28a745"
             )
-            # Reset progression for next attempt
             self.current_level = 1
             self.action_button.config(text="Play From Start", state="normal")
         else:
             self.status_label.config(
-                text=f"LEVEL {self.current_level} CLEARED!", 
-                fg="#28a745"
+                text=f"LEVEL {self.current_level} CLEARED!", fg="#28a745"
             )
             self.current_level += 1
-            self.action_button.config(text=f"Nxt lvl", state="normal")
+            self.action_button.config(text="Nxt lvl", state="normal")
 
     def handle_action_button(self):
-        """Action button callback for either retrying or to the next board"""
+        """Action button callback for either retrying or moving to the next board"""
         self.start_new_game()
 
     def reset_to_start(self):
-        """Reset gameback to Level 1"""
+        """Reset game back to Level 1"""
         self.current_level = 1
         self.current_score = 0
+        self.current_streak = 0
         self.update_scoreboard()
-        self.reset_timer()
         self.start_new_game()
 
     # -------------------------------------------------- #
@@ -321,17 +408,20 @@ class main:
                 bg="#dc3545",
                 fg="white",
                 disabledforeground="white",
-                text="💥\nBOMB"
+                text="💥\nBOMB",
             )
 
     def disable_all_buttons(self):
         """Locks remaining active buttons"""
         for btn in self.active_buttons.values():
             btn.config(state="disabled")
-    
+
     def update_scoreboard(self):
+        """Updates UI labels for current score and streak statistics"""
         self.score_label.config(text=f"Score: {self.current_score}")
-        self.streak_label.config(text=f"Streak: {self.current_streak} | Best: {self.best_streak}")
+        self.streak_label.config(
+            text=f"Streak: {self.current_streak}  |  Best: {self.best_streak}"
+        )
 
 
 # -------------------------------------------------- #
