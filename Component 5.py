@@ -1,3 +1,4 @@
+
 """ This version adds a custom gamemode where the user can select the number of buttons and the number of losing buttons"""
 
 import math
@@ -23,6 +24,17 @@ class main:
         self.custom_mode = False
         self.custom_bombs = 1
 
+        # Palette Colours (Dark Theme)
+        self.COLOUR_BG = "#1e1e2e"
+        self.COLOUR_PANEL = "#2a2a3c"
+        self.COLOUR_PRIMARY = "#00f5d4"
+        self.COLOUR_TEXT = "#f8f9fa"
+        self.COLOUR_MUTED = "#a6adc8"
+        self.COLOUR_DANGER = "#ff0055"
+        self.COLOUR_SAFE = "#38b000"
+        self.COLOUR_BTN_DEFAULT = "#313244"
+
+        self.root.configure(bg=self.COLOUR_BG)
         #File handling
         self.username = ""
         self.score_file = "score.txt"
@@ -98,7 +110,7 @@ class main:
         # saves current highscore
         scores = {}
 
-        # Read existing records
+        #Read existing records
         try:
             with open(self.score_file, "r") as file:
                 for line in file:
@@ -132,7 +144,7 @@ class main:
     def setup_ui(self):
         """Create base OOP UI layout structure"""
         # header 
-        self.header_frame = tk.Frame(self.root, pady=10)
+        self.header_frame = tk.Frame(self.root, bg=self.COLOUR_PANEL, pady=10)
         self.header_frame.pack(fill="x")
 
         # Shows player name
@@ -140,7 +152,8 @@ class main:
             self.header_frame,
             text=f"Player: {self.username}",
             font=("Arial", 11, "italic"),
-            fg="#333333",
+            fg=self.COLOUR_PRIMARY,
+            bg=self.COLOUR_PANEL,
         )
         self.user_label.pack()
 
@@ -149,7 +162,8 @@ class main:
             self.header_frame,
             text="LEVEL 1 / 5",
             font=("Arial", 14, "bold"),
-            fg="#007bff",
+            fg=self.COLOUR_TEXT,
+            bg=self.COLOUR_PANEL,
         )
         self.level_label.pack()
 
@@ -158,7 +172,8 @@ class main:
             self.header_frame,
             text="Time Left: 3s",
             font=("Arial", 17, "bold"),
-            fg="#dc3545",
+            fg=self.COLOUR_DANGER,
+            bg=self.COLOUR_PANEL,
         )
         self.timer_label.pack(pady=2)
 
@@ -167,26 +182,27 @@ class main:
             self.header_frame,
             text=f"Streak: 0  |  Best: {self.best_streak}",
             font=("Arial", 12, "bold"),
-            fg="#555555",
+            fg=self.COLOUR_MUTED,
+            bg=self.COLOUR_PANEL,
         )
         self.streak_label.pack()
 
         # scoreboard
         self.score_label = tk.Label(
-            self.root, text="Score: 0", font=("Arial", 18, "bold"), fg="#111111"
+            self.root, text="Score: 0", font=("Arial", 18, "bold"), fg=self.COLOUR_PRIMARY, bg=self.COLOUR_BG
         )
         self.score_label.pack(pady=5)
 
         self.status_label = tk.Label(
-            self.root, text="Pick a button! Avoid the bomb.", font=("Arial", 14)
+            self.root, text="Pick a button! Avoid the bomb.", font=("Arial", 14), fg=self.COLOUR_TEXT, bg=self.COLOUR_BG
         )
         self.status_label.pack(pady=10)
 
         # make grid for btn
-        self.grid_frame = tk.Frame(self.root)
+        self.grid_frame = tk.Frame(self.root, bg=self.COLOUR_BG)
         self.grid_frame.pack(expand=True)
 
-        self.control_frame = tk.Frame(self.root, pady=10)
+        self.control_frame = tk.Frame(self.root, bg=self.COLOUR_PANEL, pady=10)
         self.control_frame.pack(fill="x")
 
         # restart button
@@ -195,7 +211,11 @@ class main:
             text="Restart (Lvl 1)",
             font=("Arial", 10, "bold"),
             command=self.reset_to_start,
-            bg="#f8f9fa",
+            bg=self.COLOUR_BTN_DEFAULT,
+            fg=self.COLOUR_TEXT,
+            activebackground=self.COLOUR_BG,
+            activeforeground=self.COLOUR_TEXT,
+            bd=0,
         )
         self.restart_button.pack(side="left", padx=10)
 
@@ -205,8 +225,11 @@ class main:
             text="Custom Mode",
             font=("Arial", 10, "bold"),
             command=self.setup_custom_mode,
-            bg="#6c757d",
-            fg="white",
+            bg=self.COLOUR_PRIMARY,
+            fg=self.COLOUR_BG,
+            activebackground="#00c4aa",
+            activeforeground=self.COLOUR_BG,
+            bd=0,
         )
         self.custom_button.pack(side="left", padx=5)
 
@@ -216,8 +239,9 @@ class main:
             font=("Arial", 10, "bold"),
             command=self.handle_action_button,
             state="disabled",
-            bg="#007bff",
-            fg="white",
+            bg=self.COLOUR_MUTED,
+            fg=self.COLOUR_BG,
+            bd=0,
         )
         self.action_button.pack(side="right", padx=10)
 
@@ -225,7 +249,7 @@ class main:
     #                CUSTOM GAME MODE                    #
     # -------------------------------------------------- #
     def setup_custom_mode(self):
-        """Prompts user for custom button count and bomb count with validation."""
+        """ask user for the number of buttons from 2-25."""
         # Ask for Total Buttons
         while True:
             total_input = simpledialog.askinteger(
@@ -236,10 +260,10 @@ class main:
             if 2 <= total_input <= 25:
                 break
             messagebox.showwarning(
-                "Invalid Input", "Total buttons must be between 2 and 25!"
+                "Dont make me angry now 😈😈😈😈", "Total buttons must be between 2 and 25!"
             )
 
-        # 2. Ask for Losing Buttons 
+        #Ask for Losing Buttons 
         while True:
             bombs_input = simpledialog.askinteger(
                 "Custom Mode",
@@ -254,7 +278,7 @@ class main:
                 f"Losing buttons must be at least 1 and LESS THAN total buttons ({total_input})!",
             )
 
-        # Apply custom settings
+        #custom settings
         self.custom_mode = True
         self.total_buttons = total_input
         self.custom_bombs = bombs_input
@@ -270,12 +294,12 @@ class main:
 
         if self.custom_mode:
             num_bombs = self.custom_bombs
-            self.level_label.config(text="CUSTOM MODE", fg="#6c757d")
+            self.level_label.config(text="CUSTOM MODE", fg=self.COLOUR_PRIMARY)
         else:
             num_bombs = self.current_level
             self.level_label.config(
                 text=f"LEVEL {self.current_level} / {self.max_level}",
-                fg="#007bff",
+                fg=self.COLOUR_TEXT,
             )
 
         total_safe = self.total_buttons - num_bombs
@@ -287,9 +311,9 @@ class main:
         # Update labels
         self.status_label.config(
             text=f"Find all {total_safe} safe buttons! ({num_bombs} bombs hidden)",
-            fg="black",
+            fg=self.COLOUR_TEXT,
         )
-        self.action_button.config(text="Nxt lvl", state="disabled")
+        self.action_button.config(text="Nxt lvl", state="disabled", bg=self.COLOUR_MUTED)
 
         # Pick losing buttons
         self.losing_index = random.sample(
@@ -314,14 +338,19 @@ class main:
                 text=f"Button {i + 1}",
                 width=8 if cols > 3 else 10,
                 height=2 if self.total_buttons > 9 else 3,
+                bg=self.COLOUR_BTN_DEFAULT,
+                fg=self.COLOUR_TEXT,
+                activebackground=self.COLOUR_PANEL,
+                activeforeground=self.COLOUR_TEXT,
+                bd=0,
                 command=lambda idx=i: self.handle_click(idx),
             )
             btn.grid(row=row, column=col, padx=3, pady=3)
             self.active_buttons[i] = btn
 
 
-        for idx in self.losing_index:
-            self.active_buttons[idx].config(bg="#ffcccc")
+        #for idx in self.losing_index:
+            #self.active_buttons[idx].config(bg="#ffcccc")
 
     # -------------------------------------------------- #
     #                   Timer                            #
@@ -377,7 +406,7 @@ class main:
         if clicked_index in self.losing_index:
             self.stop_timer()
             clicked_btn.config(
-                bg="#dc3545",
+                bg=self.COLOUR_DANGER,
                 fg="white",
                 disabledforeground="white",
                 font=("Arial", 14 if self.total_buttons > 9 else 17),
@@ -387,7 +416,7 @@ class main:
 
             # Reset current streak and score on loss
             self.status_label.config(
-                text="GAME OVER! You picked the bomb!", fg="#dc3545"
+                text="GAME OVER! You picked the bomb!", fg=self.COLOUR_DANGER
             )
             self.current_score = 0
             self.current_streak = 0
@@ -397,12 +426,12 @@ class main:
             self.reveal_all_bombs()
             self.disable_all_buttons()
 
-            self.action_button.config(text="Try Again", state="normal")
+            self.action_button.config(text="Try Again", state="normal", bg=self.COLOUR_DANGER, fg="white")
 
         else:
             # Safe pick
             clicked_btn.config(
-                bg="#28a745",
+                bg=self.COLOUR_SAFE,
                 fg="white",
                 disabledforeground="white",
                 text="✓",
@@ -440,22 +469,22 @@ class main:
         self.update_scoreboard()
 
         if self.custom_mode:
-            self.status_label.config(text="CUSTOM BOARD CLEARED!", fg="#28a745")
-            self.action_button.config(text="Play Again", state="normal")
+            self.status_label.config(text="CUSTOM BOARD CLEARED!", fg=self.COLOUR_SAFE)
+            self.action_button.config(text="Play Again", state="normal", bg=self.COLOUR_SAFE, fg="white")
         else:
             # Check for win
             if self.current_level == self.max_level:
                 self.status_label.config(
-                    text="U lowk so tuff!!!!!!!!!!!!", fg="#28a745"
+                    text="U lowk so tuff!!!!!!!!!!!!", fg=self.COLOUR_SAFE
                 )
                 self.current_level = 1
-                self.action_button.config(text="play again", state="normal")
+                self.action_button.config(text="play again", state="normal", bg=self.COLOUR_SAFE, fg="white")
             else:
                 self.status_label.config(
-                    text=f"LEVEL {self.current_level} CLEARED!", fg="#28a745"
+                    text=f"LEVEL {self.current_level} CLEARED!", fg=self.COLOUR_SAFE
                 )
                 self.current_level += 1
-                self.action_button.config(text="Nxt lvl", state="normal")
+                self.action_button.config(text="Nxt lvl", state="normal", bg=self.COLOUR_PRIMARY, fg=self.COLOUR_BG)
 
     def handle_action_button(self):
         #Retry button
@@ -479,7 +508,7 @@ class main:
         for idx in self.losing_index:
             btn = self.active_buttons[idx]
             btn.config(
-                bg="#dc3545",
+                bg=self.COLOUR_DANGER,
                 fg="white",
                 disabledforeground="white",
                 text="💥\nBOMB",
