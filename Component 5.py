@@ -1,5 +1,4 @@
-
-""" This version adds a custom gamemode where the user can select the number of buttons and the number of losing buttons"""
+""" This version launches directly to a main menu first, then asks for username upon selecting a mode """
 
 import math
 import random
@@ -24,7 +23,7 @@ class main:
         self.custom_mode = False
         self.custom_bombs = 1
 
-        # Palette Colours (Dark Theme)
+        # Colours
         self.COLOUR_BG = "#1e1e2e"
         self.COLOUR_PANEL = "#2a2a3c"
         self.COLOUR_PRIMARY = "#00f5d4"
@@ -56,18 +55,11 @@ class main:
         self.timer_job = None
         self.timer_active = False
 
-        #Get user details
-        self.get_valid_username()
-        self.load_high_score()
-
         # Save data on window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # Make UI
-        self.setup_ui()
-
-        # Make first game
-        self.start_new_game()
+        # Show Main Menu first when program starts
+        self.show_main_menu()
 
     # -------------------------------------------------- #
     #               File Handling                        #
@@ -80,13 +72,13 @@ class main:
             )
 
             if name is None:
-                name = ""
+                return False  # User cancelled
 
             cleaned_name = name.strip()
 
             if cleaned_name:
                 self.username = cleaned_name
-                break
+                return True
             else:
                 messagebox.showwarning(
                     "Invalid Input",
@@ -108,6 +100,9 @@ class main:
 
     def save_high_score(self):
         # saves current highscore
+        if not self.username:
+            return
+
         scores = {}
 
         #Read existing records
@@ -125,7 +120,7 @@ class main:
         prev_best = scores.get(self.username, 0)
         scores[self.username] = max(prev_best, self.best_streak)
 
-        # Write all scores back to text file
+        # Write all scores back to txt file
         try:
             with open(self.score_file, "w") as file:
                 for user, score in scores.items():
@@ -137,6 +132,100 @@ class main:
         """Saves data and closes window when user clicks X."""
         self.save_high_score()
         self.root.destroy()
+
+    # -------------------------------------------------- #
+    #                   MAIN MENU                        #
+    # -------------------------------------------------- #
+    def clear_screen(self):
+        """Clears all existing widgets from the root window."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def show_main_menu(self):
+        """Display the Main Menu screen to pick game modes"""
+        self.stop_timer()
+        self.clear_screen()
+
+        menu_frame = tk.Frame(self.root, bg=self.COLOUR_BG)
+        menu_frame.pack(expand=True, fill="both")
+
+        # Title Block
+        title_label = tk.Label(
+            menu_frame,
+            text="BUTTON MAYHEM",
+            font=("Arial", 22, "bold"),
+            fg=self.COLOUR_PRIMARY,
+            bg=self.COLOUR_BG,
+        )
+        title_label.pack(pady=(70, 10))
+
+        sub_label = tk.Label(
+            menu_frame,
+            text="Select Game Mode",
+            font=("Arial", 14),
+            fg=self.COLOUR_TEXT,
+            bg=self.COLOUR_BG,
+        )
+        sub_label.pack(pady=(0, 40))
+
+        # Buttons to choose gamemodes
+        normal_btn = tk.Button(
+            menu_frame,
+            text="Normal Mode (5 Levels)",
+            font=("Arial", 12, "bold"),
+            bg=self.COLOUR_PRIMARY,
+            fg="white",
+            relief="flat",
+            padx=20,
+            pady=10,
+            command=self.start_normal_mode,
+        )
+        normal_btn.pack(pady=10, fill="x", padx=60)
+
+        custom_btn = tk.Button(
+            menu_frame,
+            text="Custom Mode",
+            font=("Arial", 12, "bold"),
+            bg=self.COLOUR_SAFE,
+            fg="white",
+            relief="flat",
+            padx=20,
+            pady=10,
+            command=self.start_custom_mode_from_menu,
+        )
+        custom_btn.pack(pady=10, fill="x", padx=60)
+
+    def ensure_user_ready(self):
+        """Prompts for username if not entered yet and loads saved score."""
+        if not self.username:
+            if not self.get_valid_username():
+                return False  # User cancelled dialog
+            self.load_high_score()
+        return True
+
+    def start_normal_mode(self):
+        """Launches the standard progression mode after asking for username"""
+        if not self.ensure_user_ready():
+            return
+
+        self.custom_mode = False
+        self.total_buttons = 6
+        self.current_level = 1
+        self.current_score = 0
+        self.current_streak = 0
+        self.clear_screen()
+        self.setup_ui()
+        self.start_new_game()
+
+    def start_custom_mode_from_menu(self):
+        """Asks for username, prompts settings, then launches custom game"""
+        if not self.ensure_user_ready():
+            return
+
+        if self.setup_custom_mode_prompts():
+            self.clear_screen()
+            self.setup_ui()
+            self.start_new_game()
 
     # -------------------------------------------------- #
     #                   UI                               #
@@ -152,7 +241,7 @@ class main:
             self.header_frame,
             text=f"Player: {self.username}",
             font=("Arial", 11, "italic"),
-            fg=self.COLOUR_PRIMARY,
+            fg=self.COLOUR_MUTED,
             bg=self.COLOUR_PANEL,
         )
         self.user_label.pack()
@@ -162,7 +251,7 @@ class main:
             self.header_frame,
             text="LEVEL 1 / 5",
             font=("Arial", 14, "bold"),
-            fg=self.COLOUR_TEXT,
+            fg=self.COLOUR_PRIMARY,
             bg=self.COLOUR_PANEL,
         )
         self.level_label.pack()
@@ -182,14 +271,14 @@ class main:
             self.header_frame,
             text=f"Streak: 0  |  Best: {self.best_streak}",
             font=("Arial", 12, "bold"),
-            fg=self.COLOUR_MUTED,
+            fg=self.COLOUR_TEXT,
             bg=self.COLOUR_PANEL,
         )
         self.streak_label.pack()
 
         # scoreboard
         self.score_label = tk.Label(
-            self.root, text="Score: 0", font=("Arial", 18, "bold"), fg=self.COLOUR_PRIMARY, bg=self.COLOUR_BG
+            self.root, text="Score: 0", font=("Arial", 18, "bold"), fg=self.COLOUR_TEXT, bg=self.COLOUR_BG
         )
         self.score_label.pack(pady=5)
 
@@ -208,14 +297,12 @@ class main:
         # restart button
         self.restart_button = tk.Button(
             self.control_frame,
-            text="Restart (Lvl 1)",
+            text="Menu",
             font=("Arial", 10, "bold"),
-            command=self.reset_to_start,
+            command=self.show_main_menu,
             bg=self.COLOUR_BTN_DEFAULT,
             fg=self.COLOUR_TEXT,
-            activebackground=self.COLOUR_BG,
-            activeforeground=self.COLOUR_TEXT,
-            bd=0,
+            relief="flat",
         )
         self.restart_button.pack(side="left", padx=10)
 
@@ -225,11 +312,9 @@ class main:
             text="Custom Mode",
             font=("Arial", 10, "bold"),
             command=self.setup_custom_mode,
-            bg=self.COLOUR_PRIMARY,
-            fg=self.COLOUR_BG,
-            activebackground="#00c4aa",
-            activeforeground=self.COLOUR_BG,
-            bd=0,
+            bg=self.COLOUR_MUTED,
+            fg="white",
+            relief="flat",
         )
         self.custom_button.pack(side="left", padx=5)
 
@@ -239,24 +324,24 @@ class main:
             font=("Arial", 10, "bold"),
             command=self.handle_action_button,
             state="disabled",
-            bg=self.COLOUR_MUTED,
-            fg=self.COLOUR_BG,
-            bd=0,
+            bg=self.COLOUR_PRIMARY,
+            fg="white",
+            relief="flat",
         )
         self.action_button.pack(side="right", padx=10)
 
     # -------------------------------------------------- #
     #                CUSTOM GAME MODE                    #
     # -------------------------------------------------- #
-    def setup_custom_mode(self):
-        """ask user for the number of buttons from 2-25."""
+    def setup_custom_mode_prompts(self):
+        """Prompts inputs for custom game mode settings."""
         # Ask for Total Buttons
         while True:
             total_input = simpledialog.askinteger(
                 "Custom Mode", "Enter TOTAL number of buttons (min 2, max 25):"
             )
             if total_input is None:  # User cancelled
-                return
+                return False
             if 2 <= total_input <= 25:
                 break
             messagebox.showwarning(
@@ -270,7 +355,7 @@ class main:
                 f"Enter NUMBER OF BOMBS (Must be less than {total_input}):",
             )
             if bombs_input is None:  # User cancelled
-                return
+                return False
             if 1 <= bombs_input < total_input:
                 break
             messagebox.showwarning(
@@ -283,8 +368,13 @@ class main:
         self.total_buttons = total_input
         self.custom_bombs = bombs_input
         self.current_score = 0
-        self.update_scoreboard()
-        self.start_new_game()
+        return True
+
+    def setup_custom_mode(self):
+        """ask user for the number of buttons from 2-25."""
+        if self.setup_custom_mode_prompts():
+            self.update_scoreboard()
+            self.start_new_game()
 
     # -------------------------------------------------- #
     #                   Start Game                       #
@@ -294,12 +384,12 @@ class main:
 
         if self.custom_mode:
             num_bombs = self.custom_bombs
-            self.level_label.config(text="CUSTOM MODE", fg=self.COLOUR_PRIMARY)
+            self.level_label.config(text="CUSTOM MODE", fg=self.COLOUR_MUTED)
         else:
             num_bombs = self.current_level
             self.level_label.config(
                 text=f"LEVEL {self.current_level} / {self.max_level}",
-                fg=self.COLOUR_TEXT,
+                fg=self.COLOUR_PRIMARY,
             )
 
         total_safe = self.total_buttons - num_bombs
@@ -340,9 +430,7 @@ class main:
                 height=2 if self.total_buttons > 9 else 3,
                 bg=self.COLOUR_BTN_DEFAULT,
                 fg=self.COLOUR_TEXT,
-                activebackground=self.COLOUR_PANEL,
-                activeforeground=self.COLOUR_TEXT,
-                bd=0,
+                relief="flat",
                 command=lambda idx=i: self.handle_click(idx),
             )
             btn.grid(row=row, column=col, padx=3, pady=3)
@@ -484,7 +572,7 @@ class main:
                     text=f"LEVEL {self.current_level} CLEARED!", fg=self.COLOUR_SAFE
                 )
                 self.current_level += 1
-                self.action_button.config(text="Nxt lvl", state="normal", bg=self.COLOUR_PRIMARY, fg=self.COLOUR_BG)
+                self.action_button.config(text="Nxt lvl", state="normal", bg=self.COLOUR_PRIMARY, fg="white")
 
     def handle_action_button(self):
         #Retry button
